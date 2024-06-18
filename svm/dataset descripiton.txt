@@ -1,0 +1,158 @@
+1. Title: Wisconsin Diagnostic Breast Cancer (WDBC)
+
+2. Source Information
+
+a) Creators: 
+
+	Dr. William H. Wolberg, General Surgery Dept., University of
+	Wisconsin,  Clinical Sciences Center, Madison, WI 53792
+	wolberg@eagle.surgery.wisc.edu
+
+	W. Nick Street, Computer Sciences Dept., University of
+	Wisconsin, 1210 West Dayton St., Madison, WI 53706
+	street@cs.wisc.edu  608-262-6619
+
+	Olvi L. Mangasarian, Computer Sciences Dept., University of
+	Wisconsin, 1210 West Dayton St., Madison, WI 53706
+	olvi@cs.wisc.edu 
+
+b) Donor: Nick Street
+
+c) Date: November 1995
+
+3. Past Usage:
+
+first usage:
+
+	W.N. Street, W.H. Wolberg and O.L. Mangasarian 
+	Nuclear feature extraction for breast tumor diagnosis.
+	IS&T/SPIE 1993 International Symposium on Electronic Imaging: Science
+	and Technology, volume 1905, pages 861-870, San Jose, CA, 1993.
+
+OR literature:
+
+	O.L. Mangasarian, W.N. Street and W.H. Wolberg. 
+	Breast cancer diagnosis and prognosis via linear programming. 
+	Operations Research, 43(4), pages 570-577, July-August 1995.
+
+Medical literature:
+
+	W.H. Wolberg, W.N. Street, and O.L. Mangasarian. 
+	Machine learning techniques to diagnose breast cancer from
+	fine-needle aspirates.  
+	Cancer Letters 77 (1994) 163-171.
+
+	W.H. Wolberg, W.N. Street, and O.L. Mangasarian. 
+	Image analysis and machine learning applied to breast cancer
+	diagnosis and prognosis.  
+	Analytical and Quantitative Cytology and Histology, Vol. 17
+	No. 2, pages 77-87, April 1995. 
+
+	W.H. Wolberg, W.N. Street, D.M. Heisey, and O.L. Mangasarian. 
+	Computerized breast cancer diagnosis and prognosis from fine
+	needle aspirates.  
+	Archives of Surgery 1995;130:511-516.
+
+	W.H. Wolberg, W.N. Street, D.M. Heisey, and O.L. Mangasarian. 
+	Computer-derived nuclear features distinguish malignant from
+	benign breast cytology.  
+	Human Pathology, 26:792--796, 1995.
+
+Results:
+
+	- predicting field 2, diagnosis: B = benign, M = malignant
+	- sets are linearly separable using all 27 input features（We remove the "symmetry_mean", 
+                  "symmetry_se" and "symmetry_worst" features, so now there are 27 input features）
+	- best predictive accuracy obtained using one separating plane
+		in the 3-D space of Worst Area, Worst Smoothness and
+		Mean Texture.  Estimated accuracy 97.5% using repeated
+		10-fold crossvalidations.  Classifier has correctly
+		diagnosed 176 consecutive new patients as of November
+		1995. 
+
+4. Relevant information
+
+	Features are computed from a digitized image of a fine needle
+	aspirate (FNA) of a breast mass.  They describe
+	characteristics of the cell nuclei present in the image.
+	A few of the images can be found at
+	http://www.cs.wisc.edu/~street/images/
+
+	Separating plane described above was obtained using
+	Multisurface Method-Tree (MSM-T) [K. P. Bennett, "Decision Tree
+	Construction Via Linear Programming." Proceedings of the 4th
+	Midwest Artificial Intelligence and Cognitive Science Society,
+	pp. 97-101, 1992], a classification method which uses linear
+	programming to construct a decision tree.  Relevant features
+	were selected using an exhaustive search in the space of 1-4
+	features and 1-3 separating planes.
+
+	The actual linear program used to obtain the separating plane
+	in the 3-dimensional space is that described in:
+	[K. P. Bennett and O. L. Mangasarian: "Robust Linear
+	Programming Discrimination of Two Linearly Inseparable Sets",
+	Optimization Methods and Software 1, 1992, 23-34].
+
+
+	This database is also available through the UW CS ftp server:
+
+	ftp ftp.cs.wisc.edu
+	cd math-prog/cpo-dataset/machine-learn/WDBC/
+
+5. Number of instances: 569 
+
+6. Number of attributes: 32 (ID, diagnosis, 27 real-valued input features)
+
+7. Attribute information
+
+1) ID number
+2) Diagnosis (M = malignant, B = benign)
+3-32)
+
+          feature                                        explanation
+       radius_mean                      半径,即细胞核从中心到周边点的距离平均值
+       texture_mean                    纹理(灰度值的标准偏差)平均值
+       perimeter_mean                细胞核周长平均值
+       area_mean                        细胞核面积平均值
+       smoothness_mean             平滑度(半径长度的局部变化)平均值
+       compactness_mean           紧凑度(周长^2/面积-1.0)平均值
+       concavity_mean                 凹度(轮廓凹部的严重程度)平均值
+       concavepoints_mean         凹点(轮廓凹部的数量)平均值
+       fractal_dimension_mean    分形维数-1平均值
+       radius_se                           半径，即细胞核从中心到周边点的距离标准差
+       texture_se                          纹理(灰度值的标准偏差)标准差
+       perimeter_se                      细胞核周长标准差
+       area_se                              细胞核面积标准差
+       smoothness_se                  平滑度(半径长度的局部变化)标准差
+       compactness_se                 紧凑度(周长^2/面积-1.0)标准差
+       concavity_se                       凹度(轮廓凹部的严重程度)标准差
+       concave points_se               凹点(轮廓凹部的数量)标准差
+       fractal_dimension_se           分形维数-1标准差
+       radius_worst                        半径,即细胞核从中心到周边点的距离最大值
+       texture_worst                      纹理(灰度值的标准偏差)最大值
+       perimeter_worst                  细胞核周长最大值
+       area_worst                          细胞核面积最大值
+       smoothness_worst               平滑度(半径长度的局部变化)最大值
+       compactness_worst             紧凑度(周长^2!/面积-1.0)最大值
+       concavity_worst                   凹度(轮廓凹部的严重程度)最大值
+       concavepoints_worst           凹点(轮廓凹部的数量)最大值
+       fractal_dimension_worst       分形维数-1最大值
+ 
+
+The mean, standard error, and "worst" or largest (mean of the three
+largest values) of these features were computed for each image,
+resulting in 27 features.  For instance, field 3 is Mean Radius, field
+13 is Radius SE, field 23 is Worst Radius.
+
+All feature values are recoded with four significant digits.
+
+8. Missing attribute values: none
+
+9. Class distribution: 357 benign, 212 malignant
+
+10. Usage
+Three formats are given:
+
+  data.csv: csv file with header and index.
+  data.mat: MATLAB data file with sample matrix x and label matrix y.
+  data.pkl: Python pickle file of pandas.DataFrame
