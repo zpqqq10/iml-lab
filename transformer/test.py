@@ -3,7 +3,19 @@ import torch.nn as nn
 import torch.utils.data as Data
 from model.Transformer import Transformer
 from tqdm import trange, tqdm
+import numpy as np
+import random
 # https://blog.csdn.net/qq_37236745/article/details/107352273
+
+def seed_everything():
+    '''Seed everything for better reproducibility.
+    (some pytorch operation is non-deterministic like the backprop of grid_samples)
+    '''
+    torch.manual_seed(7777)
+    np.random.seed(7777)
+    random.seed(7777)
+
+seed_everything()
 
 # S: Symbol that shows starting of decoding input
 # E: Symbol that shows starting of decoding output
@@ -71,7 +83,6 @@ for epoch in trange(30):
       # enc_inputs, dec_inputs, dec_outputs = enc_inputs.to(device), dec_inputs.to(device), dec_outputs.to(device)
       # outputs: [batch_size * tgt_len, tgt_vocab_size]
       outputs = model(enc_inputs, dec_inputs)
-      breakpoint()
       loss = criterion(outputs, dec_outputs.view(-1))
       tqdm.write(f'Epoch: {epoch + 1} loss = {loss:.6f}')
 
