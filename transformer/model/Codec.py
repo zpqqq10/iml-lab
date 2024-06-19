@@ -3,7 +3,7 @@ import torch.nn as nn
 from .Attention import MultiAttention
 from .FeedForward import FeedForward
 from .Embedding import Embeddings
-from .Encoding import TriPE
+from .Encoding import RoPE
 from .Mask import mask_stop_words, mask_subsequence
 
 class EncoderLayer(nn.Module):
@@ -31,7 +31,7 @@ class Encoder(nn.Module):
     def __init__(self, vocab = 1e4, emb_dim = 512, n_layers = 6):
         super(Encoder, self).__init__()
         self.embedding = Embeddings(emb_dim, vocab)
-        self.encoding = TriPE(emb_dim)
+        self.encoding = RoPE(emb_dim)
         self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
         
     def forward(self, inputs): 
@@ -76,7 +76,7 @@ class Decoder(nn.Module):
     def __init__(self, vocab = 1e4, emb_dim = 512, n_layers = 6):
         super(Decoder, self).__init__()
         self.embedding = Embeddings(emb_dim, vocab)
-        self.encoding = TriPE(emb_dim)
+        self.encoding = RoPE(emb_dim)
         self.layers = nn.ModuleList([DecoderLayer() for _ in range(n_layers)])
        
     # inputs is the input of the decoder

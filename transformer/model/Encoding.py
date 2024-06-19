@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import math
 
-class TriPE(nn.Module):
+class RoPE(nn.Module):
     '''positional encoding with sin and cos
 
     Args:
@@ -10,7 +10,7 @@ class TriPE(nn.Module):
         max_len (int): max length of the input sequence
     '''
     def __init__(self, dim, max_len=5000):
-        super(TriPE, self).__init__()
+        super(RoPE, self).__init__()
  
         # positional encoding matrix
         pe = torch.zeros(max_len, dim)
@@ -28,4 +28,3 @@ class TriPE(nn.Module):
         return x
     
     
-# TODO RoPE
