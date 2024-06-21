@@ -12,19 +12,24 @@ class SelfAttention(nn.Module):
     def __init__(self, scale_factor, dropout=0.0):
         super(SelfAttention, self).__init__()
         self.scale_factor = scale_factor
-        self.dropout = nn.Dropout(dropout)
+        # self.dropout = nn.Dropout(dropout)
  
+    # (4d_k+4)len*len -len - len*d_k
     def forward(self, q, k, v, mask=None):
         # matmul & scale
+        # (2*d_k - 1) * len * len + len*len
         scores = torch.matmul(q, k.transpose(2, 3)) / self.scale_factor
  
         # optional mask
+        # 2*len*len
         if mask is not None:
             # use -1e9 as the large negative value to mask the padding tokens
             scores = scores.masked_fill(mask == 0, -1e9)
         # softmax
-        scores = self.dropout(torch.softmax(scores, dim=-1))
+        # len * (2*len - 1)
+        scores = torch.softmax(scores, dim=-1)
         # matmul
+        # (2*len-1) * len * d_k
         output = torch.matmul(scores, v)
         # 返回 output和注意力分数
         return output, scores
@@ -37,25 +42,28 @@ class MultiAttention(nn.Module):
         n_heads (int): number of heads
         dim (int): length of the embedding vector
         dim_k (int): dim of k
+        dim_v (int): dim of v
         dropout (float): dropout rate
     '''
-    def __init__(self, n_heads = 8, dim = 512, dim_k = 64, dropout=0.1):
+    def __init__(self, n_heads = 8, dim = 512, dim_k = 64, dim_v = 64,  dropout=0.1):
         super(MultiAttention, self).__init__()
         self.n_heads = n_heads
         self.dim_k = dim_k
+        self.dim_v = dim_v
  
         # weight matrices for Q, K, V
         # the linear layer represents the weight matrices
         self.Wq = nn.Linear(dim, n_heads * dim_k, bias=False)
         self.Wk = nn.Linear(dim, n_heads * dim_k, bias=False)
-        self.Wv = nn.Linear(dim, n_heads * dim_k, bias=False)
-        self.fc = nn.Linear(n_heads * dim_k, dim, bias=False)
+        self.Wv = nn.Linear(dim, n_heads * dim_v, bias=False)
+        self.fc = nn.Linear(n_heads * dim_v, dim, bias=False)
  
         self.attention = SelfAttention(scale_factor=dim_k ** 0.5)
  
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = LayerNorm(dim, eps=1e-6)
  
+    # 8Td_model * d_model + 4T * T *d_model +T +4TTh - Th
     def forward(self, q, k, v, mask=None):
         # q, k, v：[batch_size, seq_num, dim]
         # len_k为输入的序列长度
@@ -66,13 +74,15 @@ class MultiAttention(nn.Module):
  
         # multiplied by W^Q, W^K, W^V
         # (batch_size, length, n_heads, dim_k) => (batch_size, n_heads, length, dim_k)
+        # 3(2*d_model - 1)len*d_model
         query = self.Wq(q).view(batch_size, -1, self.n_heads, self.dim_k).transpose(1, 2)
         key   = self.Wk(k).view(batch_size, -1, self.n_heads, self.dim_k).transpose(1, 2)
-        value = self.Wv(v).view(batch_size, -1, self.n_heads, self.dim_k).transpose(1, 2)
+        value = self.Wv(v).view(batch_size, -1, self.n_heads, self.dim_v).transpose(1, 2)
  
         if mask is not None:
             mask = mask.unsqueeze(1) 
         
+        # (4d_k+4)len*len*h -len*h - len*d_model
         x, attn = self.attention(query, key, value, mask=mask)
  
         # Transpose to move the head dimension back: b x lq x n x dv
@@ -80,10 +90,14 @@ class MultiAttention(nn.Module):
         # (batch_size, 8, len_k, 64) => (batch_size, len_k, 8, 64) => (batch_size, len_k, 512)
         x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.n_heads * self.dim_k)
         # the final linear layer
-        x = self.fc(x)
+        # (2*d_model - 1)len*d_model
+        # > we apply dropout to the output of each sub-layer, before it is added to the sub-layer input and normalized.
+        x = self.dropout(self.fc(x))
         # add in add & norm
+        # len * d_model
         x += residual
         # norm in add & norm
+        # len * (4*d_model+1)
         x = self.layer_norm(x)
-        return self.dropout(x), attn
+        return x, attn
     

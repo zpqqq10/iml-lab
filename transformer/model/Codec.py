@@ -8,11 +8,16 @@ from .Mask import mask_stop_words, mask_subsequence
 
 class EncoderLayer(nn.Module):
     '''one layer of encoder
+    
+    Args:
+        dim (int): length of the embedding vector
+        ff_dim (int): length of the hidden layer in the feedforward network
+        n_heads (int): number of heads
     '''
-    def __init__(self):
+    def __init__(self, dim, ff_dim, n_heads):
         super(EncoderLayer, self).__init__()
-        self.encoder_atten = MultiAttention()
-        self.ffnet = FeedForward()
+        self.encoder_atten = MultiAttention(dim=dim, n_heads=n_heads, dim_k=dim//n_heads, dim_v=dim//n_heads)
+        self.ffnet = FeedForward(dim=dim, hidden_dim=ff_dim)
         
     def forward(self, inputs, mask):
         # the same inputs for q, k, v
@@ -26,13 +31,17 @@ class Encoder(nn.Module):
     Args:
         vocab (int): number of words in the vocabulary
         emb_dim (int): length of the embedding vector
+        ff_dim (int): length of the hidden layer in the feedforward network
         n_layers (int): number of layers
+        n_heads (int): number of heads
+        device
     '''
-    def __init__(self, vocab = 1e4, emb_dim = 512, n_layers = 6):
+    def __init__(self, vocab, emb_dim, ff_dim , n_layers = 6, n_heads = 8, device = 'cuda'):
         super(Encoder, self).__init__()
         self.embedding = Embeddings(emb_dim, vocab)
         self.encoding = RoPE(emb_dim)
-        self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
+        self.layers = nn.ModuleList([EncoderLayer(emb_dim, ff_dim, n_heads) for _ in range(n_layers)])
+        self.device = device
         
     def forward(self, inputs): 
         # mask out stop words in the inputs
@@ -48,11 +57,18 @@ class Encoder(nn.Module):
         return outputs, attentions
     
 class DecoderLayer(nn.Module):
-    def __init__(self):
+    '''one layer of decoder
+    
+    Args:
+        dim (int): length of the embedding vector
+        ff_dim (int): length of the hidden layer in the feedforward network
+        n_heads (int): number of heads
+    '''
+    def __init__(self, dim, ff_dim, n_heads):
         super(DecoderLayer, self).__init__()
-        self.decoder_atten = MultiAttention()
-        self.decoder_masked_atten = MultiAttention()
-        self.ffnet = FeedForward()
+        self.decoder_atten = MultiAttention(dim=dim, n_heads=n_heads, dim_k=dim//n_heads, dim_v=dim//n_heads)
+        self.decoder_masked_atten = MultiAttention(dim=dim, n_heads=n_heads, dim_k=dim//n_heads, dim_v=dim//n_heads)
+        self.ffnet = FeedForward(dim=dim, hidden_dim=ff_dim)
     
     # inputs is the input of the decoder
     # enc_outputs is the output of the encoder
@@ -71,22 +87,26 @@ class Decoder(nn.Module):
     Args:
         vocab (int): number of words in the vocabulary
         emb_dim (int): length of the embedding vector
+        ff_dim (int): length of the hidden layer in the feedforward network
         n_layers (int): number of layers
+        n_heads (int): number of heads
+        device
     '''
-    def __init__(self, vocab = 1e4, emb_dim = 512, n_layers = 6):
+    def __init__(self, vocab, emb_dim, ff_dim,  n_layers = 6, n_heads = 8, device = 'cuda'):
         super(Decoder, self).__init__()
         self.embedding = Embeddings(emb_dim, vocab)
         self.encoding = RoPE(emb_dim)
-        self.layers = nn.ModuleList([DecoderLayer() for _ in range(n_layers)])
+        self.layers = nn.ModuleList([DecoderLayer(emb_dim, ff_dim, n_heads) for _ in range(n_layers)])
+        self.device = device
        
     # inputs is the input of the decoder
     # enc_inputs is the input of the encoder 
     # enc_outputs is the output of the encoder 
     def forward(self, inputs, enc_inputs, enc_outputs): 
         # mask out stop words and subsequence in the inputs
-        masked_atten_mask = mask_subsequence(inputs)
-        masked_atten_mask = masked_atten_mask.bool() & mask_stop_words(inputs, inputs)
-        enc_atten_mask = mask_stop_words(enc_inputs, inputs)
+        masked_atten_mask = mask_subsequence(inputs).to(self.device)
+        masked_atten_mask = masked_atten_mask.bool() & mask_stop_words(inputs, inputs).to(self.device)
+        enc_atten_mask = mask_stop_words(enc_inputs, inputs).to(self.device)
         # embedding & encoding
         embedding = self.embedding(inputs)
         outputs = self.encoding(embedding)

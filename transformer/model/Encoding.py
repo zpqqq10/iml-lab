@@ -8,8 +8,9 @@ class RoPE(nn.Module):
     Args:
         dim (int): length of the embedding vector, same as embedding dim
         max_len (int): max length of the input sequence
+        dropout (float): dropout rate
     '''
-    def __init__(self, dim, max_len=5000):
+    def __init__(self, dim, max_len=5000, dropout=0.1):
         super(RoPE, self).__init__()
  
         # positional encoding matrix
@@ -21,10 +22,12 @@ class RoPE(nn.Module):
         # batch size occupies one dim
         pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
+        self.dropout = nn.Dropout(dropout)
  
     def forward(self, x):
         # x: [batch_size, seq_len, dim] embedding
         x = x + self.pe[:, :x.size(1)].clone().detach() 
-        return x
+        # > We apply dropout to the sums of the embeddings and the positional encodings in both the encoder and decoder stacks.
+        return self.dropout(x)
     
     

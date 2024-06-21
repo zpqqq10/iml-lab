@@ -1,4 +1,8 @@
 # Byte-compiled / optimized / DLL files
+llama/
+logs/
+tokenizer.model
+ckpt/
 __pycache__/
 *.py[cod]
 *$py.class
