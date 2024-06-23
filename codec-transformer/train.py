@@ -19,6 +19,8 @@ from torch.utils.tensorboard import SummaryWriter
 # https://github.com/bl0nder/makespeare/blob/main/makespeare.py
 def tokenize(path: str = "input.txt"):
     tokenizer = LlamaTokenizer.from_pretrained("tokenizer.model")
+    # padding and beginning of sequence
+    special_tokens = ['<pad>', '<s>']
     # '<unk>': 0  '<s>': 1  '</s>': 2  '<0x0A>': 13(carriage return)
     # dic = tokenizer.get_vocab()
     # rever = {v: k for k, v in dic.items()}
@@ -38,27 +40,31 @@ def tokenize(path: str = "input.txt"):
         text = f.read()
         raw_tokens = tokenizer.tokenize(text)
     tokens = set(raw_tokens)
+    for tk in special_tokens: 
+        tokens.discard(tk)
     vocab = {}
     reverse_vocab = {}
-    # padding
-    vocab['<pad>'] = 0
-    reverse_vocab[0] = '<pad>'
-    # beginning of sequence
-    vocab['<s>'] = 1
-    reverse_vocab[1] = '<s>'
+    for i, tk in enumerate(special_tokens):
+        vocab[tk] = i
+        reverse_vocab[i] = tk
+    # vocab['</s>'] = 2
+    # reverse_vocab[2] = '<s>'
     for id, token in enumerate(tokens):
         # leave 0 for padding
-        vocab[token] = id + 2
-        reverse_vocab[id + 2] = token
+        vocab[token] = id + len(special_tokens)
+        reverse_vocab[id + len(special_tokens)] = token
     raw_tokens.insert(0, '<s>')
+    # raw_tokens.append('</s>')
     # this kind of data does not need this kind of separation
-    # i = 0
-    # while i < len(raw_tokens) - 1:
-    #     if raw_tokens[i] == '<0x0A>' and raw_tokens[i + 1] == '<0x0A>':
-    #         # indicate the beginning of a new sequence
-    #         raw_tokens[i + 1] = '<s>'
-    #         i += 1
-    #     i += 1
+    i = 0
+    while i < len(raw_tokens) - 1:
+        if raw_tokens[i] == '<0x0A>' and raw_tokens[i + 1] == '<0x0A>':
+            # indicate the beginning of a new sequence
+            raw_tokens[i + 1] = '<s>'
+            i += 1
+        i += 1
+    if raw_tokens[-1] == '<s>':
+        raw_tokens[-1] = '<0x0A>'
         
     id_text = torch.LongTensor([vocab[token] for token in raw_tokens])
     print(f'{len(vocab)} tokens in total')
@@ -106,6 +112,7 @@ if __name__ == "__main__":
                         enc_layers=conf['encoder_layers'], dec_layers=conf['decoder_layers'], n_heads=conf['heads'],
                         src_vocab=len(vocab), tgt_vocab=len(vocab), device=device).to(device)
     print(sum(p.numel() for p in model.parameters())/1e6, 'M parameters')
+    print((sum(p.numel() for p in model.parameters()) - 2 * conf['emb_dim'] * len(vocab))/1e6, 'M non-embedding parameters')
     criterion = nn.CrossEntropyLoss(ignore_index=vocab['<pad>'])
     # 5e-5
     optimizer = torch.optim.AdamW(model.parameters(), lr=conf['lr'])
@@ -157,11 +164,14 @@ if __name__ == "__main__":
     print('Done!')
     
     # generate
-    ckpt = torch.load(os.path.join(conf['ckpt_path'], conf['exp'], f'model_{int(conf["iterations"])}.pt'))
+    ckpt = torch.load(os.path.join(conf['ckpt_path'], conf['exp'], f'model_80000.pt'))
+    # ckpt = torch.load(os.path.join(conf['ckpt_path'], conf['exp'], f'model_{int(conf["iterations"])}.pt'))
     model.load_state_dict(ckpt)
-    inputs = torch.LongTensor([[vocab['<s>']]]).to(device)
+    # inputs = torch.LongTensor([[vocab['<s>']]]).to(device)
     # randomly pick one word as the initial input
+    # target = torch.LongTensor([[vocab['▁C'], vocab['AM'], vocab['ILL'], vocab['O'], vocab[':'], vocab['<0x0A>']]]).to(device)
     target = torch.LongTensor([[vocab['▁C'], vocab['AM'], vocab['ILL'], vocab['O'], vocab[':'], vocab['<0x0A>']]]).to(device)
+    inputs = torch.LongTensor([[vocab['<s>'], vocab['▁C'], vocab['AM'], vocab['ILL'], vocab['O'], vocab[':']]]).to(device)
     result = model.generate(target, inputs)
     res = decode(result, reverse_vocab)
     print(res)

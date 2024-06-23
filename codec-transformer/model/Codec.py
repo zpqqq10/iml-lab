@@ -56,6 +56,7 @@ class Encoder(nn.Module):
             attentions.append(attention)
         return outputs, attentions
     
+# for encoder-decoder architecture
 class DecoderLayer(nn.Module):
     '''one layer of decoder
     
@@ -81,6 +82,7 @@ class DecoderLayer(nn.Module):
         outputs = self.ffnet(outputs)
         return outputs, masked_attention, attention
     
+# for encoder-decoder architecture
 class Decoder(nn.Module):
     '''decoder itself
 
