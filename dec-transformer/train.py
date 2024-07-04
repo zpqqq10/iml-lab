@@ -25,10 +25,6 @@ def tokenize(path: str = "input.txt"):
     # '<unk>': 0  '<s>': 1  '</s>': 2  '<0x0A>': 13(carriage return)
     
     # convert_tokens_to_string
-    # 也就是说当前这种情况，模型很有可能会一直吐字而不停止，因为它不知道什么时候停止（输入中并没有）
-    # 如果使用tokenizer(text)，返回的input_ids第一个元素是1（即<s>），标志着序列开始；但是最后一个元素并不是2（即</s>），标志着序列结束
-    # 如果要做到比较好的，可能要手动把连续两个<0x0A>换成一个</s>+一个<s>？
-    # 还是说，模型本来就不会停止，只不过通过别的手段识别出应该在哪停止？反正总之好像可以先这样练着先
     # (Pdb) tokenizer('<s>cdc</s>')
     # {'input_ids': [1, 1, 274, 13891, 2], 'attention_mask': [1, 1, 1, 1, 1]}
     # (Pdb) tokenizer('<s>cdc</s>', add_special_tokens=False)
