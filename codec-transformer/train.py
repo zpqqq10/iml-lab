@@ -141,7 +141,7 @@ if __name__ == "__main__":
             param_group['lr'] = param_group['lr'] * decay_factor
             
         if idx % (int(conf['log_iter']) / 10) == 0:
-            writer.add_scalar('loss', loss, idx)
+            writer.add_scalar('loss/loss', loss, idx)
             writer.add_scalar('lr', optimizer.param_groups[0]['lr'], idx)
             
         if idx % int(conf['log_iter']) == 0:
@@ -153,7 +153,7 @@ if __name__ == "__main__":
                     x, y = x.to(device), y.to(device)
                     outputs = model(x, y)
                     val_loss += criterion(outputs, y.view(-1))
-                writer.add_scalar('val_loss', val_loss / conf['val_iterations'], idx)
+                writer.add_scalar('loss/val_loss', val_loss / conf['val_iterations'], idx)
                 model.train()
             tqdm.write(f'Iteration: {idx} loss = {loss:.8f} val_loss = {val_loss / conf["val_iterations"]:.8f}')
             

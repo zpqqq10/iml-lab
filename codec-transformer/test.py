@@ -68,7 +68,7 @@ class MyDataSet(Data.Dataset):
 
 loader = Data.DataLoader(MyDataSet(enc_inputs, dec_inputs, dec_outputs), 2, True)
 
-model = Transformer(512, src_vocab_size, tgt_vocab_size)
+model = Transformer(src_vocab=src_vocab_size, tgt_vocab=tgt_vocab_size).cuda()
 criterion = nn.CrossEntropyLoss(ignore_index=0)
 optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.99)
 
@@ -80,7 +80,7 @@ for epoch in trange(30):
       dec_inputs: [batch_size, tgt_len]
       dec_outputs: [batch_size, tgt_len]
       '''
-      # enc_inputs, dec_inputs, dec_outputs = enc_inputs.to(device), dec_inputs.to(device), dec_outputs.to(device)
+      enc_inputs, dec_inputs, dec_outputs = enc_inputs.cuda(), dec_inputs.cuda(), dec_outputs.cuda()
       # outputs: [batch_size * tgt_len, tgt_vocab_size]
       outputs = model(enc_inputs, dec_inputs)
       loss = criterion(outputs, dec_outputs.view(-1))
@@ -90,6 +90,8 @@ for epoch in trange(30):
       optimizer.step()
 
 enc_inputs, dec_inputs, _ = next(iter(loader))
+enc_inputs = enc_inputs.cuda()
+dec_inputs = dec_inputs.cuda()
 predict = model(enc_inputs[0].view(1, -1), dec_inputs[0].view(1, -1)) # model(enc_inputs[0].view(1, -1), greedy_dec_input)
 predict = predict.data.max(1, keepdim=True)[1]
 print([idx2word_src[n.item()] for n in enc_inputs[0]], '->', [idx2word[n.item()] for n in predict.squeeze()])

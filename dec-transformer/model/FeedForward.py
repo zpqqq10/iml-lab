@@ -21,7 +21,7 @@ class FeedForward(nn.Module):
         )
         self.layer_norm = LayerNorm(dim, eps=1e-6)
         
-    # 4len*d_model * d_ff + 4Td_model + T
+    # 4 * len*d_model * d_ff + 9 * len * d_model
     def forward(self, x):
         # x: [batch_size, len, dim]
         residual = x

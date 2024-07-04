@@ -14,10 +14,10 @@ class SelfAttention(nn.Module):
         self.scale_factor = scale_factor
         # self.dropout = nn.Dropout(dropout)
  
-    # (4d_k+4)len*len -len - len*d_k
+    # (4d_k + 3)len*len (should multiply by heads)
     def forward(self, q, k, v, mask=None):
         # matmul & scale
-        # (2*d_k - 1) * len * len + len*len
+        # 2*d_k * len * len + len*len
         scores = torch.matmul(q, k.transpose(2, 3)) / self.scale_factor
  
         # optional mask
@@ -26,10 +26,10 @@ class SelfAttention(nn.Module):
             # use -1e9 as the large negative value to mask the padding tokens
             scores = scores.masked_fill(mask == 0, -1e9)
         # softmax
-        # len * (2*len - 1)
+        # 3 * len * len
         scores = torch.softmax(scores, dim=-1)
         # matmul
-        # (2*len-1) * len * d_k
+        # 2*d_k * len * len
         output = torch.matmul(scores, v)
         # 返回 output和注意力分数
         return output, scores
@@ -63,7 +63,7 @@ class MultiAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = LayerNorm(dim, eps=1e-6)
  
-    # 8Td_model * d_model + 4T * T *d_model +T +4TTh - Th
+    # 8 * len * d_model * d_model + 4 * len * len * d_model + 3 * len * len * h + 9 * len * d_model
     def forward(self, q, k, v, mask=None):
         # q, k, v：[batch_size, seq_num, dim]
         # len_k为输入的序列长度
@@ -74,7 +74,7 @@ class MultiAttention(nn.Module):
  
         # multiplied by W^Q, W^K, W^V
         # (batch_size, length, n_heads, dim_k) => (batch_size, n_heads, length, dim_k)
-        # 3(2*d_model - 1)len*d_model
+        # 3 * 2 * len * d_model * d_model
         query = self.Wq(q).view(batch_size, -1, self.n_heads, self.dim_k).transpose(1, 2)
         key   = self.Wk(k).view(batch_size, -1, self.n_heads, self.dim_k).transpose(1, 2)
         value = self.Wv(v).view(batch_size, -1, self.n_heads, self.dim_v).transpose(1, 2)
@@ -82,22 +82,23 @@ class MultiAttention(nn.Module):
         if mask is not None:
             mask = mask.unsqueeze(1) 
         
-        # (4d_k+4)len*len*h -len*h - len*d_model
+        # (4d_k + 3) * len * len * h => 
+        # 4 * d_model * len * len + 3 * len * len * h
         x, attn = self.attention(query, key, value, mask=mask)
  
         # Transpose to move the head dimension back: b x lq x n x dv
         # Combine the last two dimensions to concatenate all the heads together: b x lq x (n*dv)
-        # (batch_size, 8, len_k, 64) => (batch_size, len_k, 8, 64) => (batch_size, len_k, 512)
+        # (batch_size, n_heads, length, d_k/d_v) => (batch_size, length, n_heads, d_k/d_v) => (batch_size, length, dim)
         x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.n_heads * self.dim_k)
         # the final linear layer
-        # (2*d_model - 1)len*d_model
+        # 2 * len * d_model * d_model
         # > we apply dropout to the output of each sub-layer, before it is added to the sub-layer input and normalized.
         x = self.dropout(self.fc(x))
         # add in add & norm
         # len * d_model
         x += residual
         # norm in add & norm
-        # len * (4*d_model+1)
+        # 8 * len * d_model
         x = self.layer_norm(x)
         return x, attn
     

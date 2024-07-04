@@ -16,6 +16,7 @@ class LayerNorm(nn.Module):
         # prevent division by zero
         self.eps = eps
         
+    # 8 * len * d_model
     def forward(self, x):
         # mean and variance
         mean = x.mean(-1, keepdim=True)
